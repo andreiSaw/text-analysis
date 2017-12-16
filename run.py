@@ -1,6 +1,13 @@
-import disneylandClient
-import os
+import json
 
-client = disneylandClient.new_client()
-ret = client.ListJobs(disneylandClient.ListJobsRequest(how_many=10, kind="ock"))
-print(ret)
+from solution import Solution
+
+if __name__ == '__main__':
+    s = Solution()
+    json_lines = []
+
+    with open("tpc-dataset.train.txt", 'r') as f:
+        for line in f:
+            json_lines.append(json.loads(line))
+    # s.train(json_lines)
+    print(s.get_age(["hi", "ejwj"]))

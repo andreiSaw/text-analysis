@@ -66,6 +66,7 @@ target/
 
 #large files
 *.bin
-*.txt
+tpc-dataset.train.txt
 
 .DS_Store
+run.py

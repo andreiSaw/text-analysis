@@ -1,9 +1,9 @@
 # text-analysis
 
-Get train data and submit [https://tpc2017.at.ispras.ru/submissions/1](here)
+Get train data and submit [here](https://tpc2017.at.ispras.ru/submissions/1)
 
 
-Course info [http://tpc.at.ispras.ru](here)
+Course info [here](http://tpc.at.ispras.ru)
 
 
-Task to complete [task.pdf](here)
+Task to complete [here](task.pdf)

@@ -2,15 +2,13 @@
 # @author Denis Turdakov (turdakov@ispras.ru)
 import pandas as pd
 import numpy as np
-import sklearn as skl
-import json
-import fasttext
 from matplotlib.mlab import find
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier as RFC
-import os
+
+
+# import os
 
 
 class Solution:  # Class must have name "Solution"
@@ -31,46 +29,46 @@ class Solution:  # Class must have name "Solution"
         :param training_corpus: trainings corpus
         :return: None
         """
-        if not (os.path.exists("m.pkl")):
-            train_df = pd.DataFrame.from_dict(training_corpus)
-            np.random.seed(0)
-            df_t = train_df
-            df_t = df_t.sample(frac=1.0).reset_index(drop=True)
-            cleanup_nums = {"age": {"<=17": 1, "18-24": 2, "25-34": 3, "35-44": 4, ">=45": 5},
-                            "education": {"low": 1, "middle": 2, "high": 3}}
-            df_t.replace(cleanup_nums, inplace=True)
-            df_t.education = df_t.education.fillna(0)
-            df_t.loc[:, 'f'] = pd.Series(np.random.randn(len(df_t)), index=df_t.index)
-            for index, row in df_t.iterrows():
-                df_t.at[index, 'f'] = len(df_t.at[index, 'texts'])
-                df_t.at[index, 'text'] = ''.join(df_t.at[index, 'texts'])
-            Z = df_t.drop(["id", "education"], axis=1)
+        # if not (os.path.exists("m.pkl")):
+        train_df = pd.DataFrame.from_dict(training_corpus)
+        np.random.seed(0)
+        df_t = train_df
+        df_t = df_t.sample(frac=1.0).reset_index(drop=True)
+        cleanup_nums = {"age": {"<=17": 1, "18-24": 2, "25-34": 3, "35-44": 4, ">=45": 5},
+                        "education": {"low": 1, "middle": 2, "high": 3}}
+        df_t.replace(cleanup_nums, inplace=True)
+        df_t.education = df_t.education.fillna(0)
+        df_t.loc[:, 'f'] = pd.Series(np.random.randn(len(df_t)), index=df_t.index)
+        for index, row in df_t.iterrows():
+            df_t.at[index, 'f'] = len(df_t.at[index, 'texts'])
+            df_t.at[index, 'text'] = ''.join(df_t.at[index, 'texts'])
+        Z = df_t.drop(["id", "education"], axis=1)
 
-            Z.rename(columns={'age': 'y'}, inplace=True)
+        Z.rename(columns={'age': 'y'}, inplace=True)
 
-            train_sels = ~np.isnan(Z.y)
-            test_sels = np.isnan(Z.y)
+        train_sels = ~np.isnan(Z.y)
+        test_sels = np.isnan(Z.y)
 
-            train_inds = find(train_sels)
-            test_inds = find(test_sels)
+        train_inds = find(train_sels)
+        test_inds = find(test_sels)
 
-            del train_sels, test_sels
+        del train_sels, test_sels
 
-            corpus = Z.text
-            vectorizer = TfidfVectorizer(min_df=1)
-            X = vectorizer.fit_transform(corpus)
+        corpus = Z.text
+        vectorizer = TfidfVectorizer(min_df=1)
+        X = vectorizer.fit_transform(corpus)
 
-            Y = Z.y.values
+        Y = Z.y.values
 
-            # Initialize the Random Forest or bagged tree based the model chosen
-            rfc = RFC(n_estimators=100, oob_score=True, max_features="auto")
-            print("Training %s" % ("Random Forest"))
-            rfc = rfc.fit(X[train_inds], Y[train_inds])
-            print("OOB Score =", rfc.oob_score_)
+        # Initialize the Random Forest or bagged tree based the model chosen
+        rfc = RFC(n_estimators=100, oob_score=True, max_features="auto")
+        print("Training %s" % ("Random Forest"))
+        rfc = rfc.fit(X[train_inds], Y[train_inds])
+        print("OOB Score =", rfc.oob_score_)
 
-            joblib.dump(rfc, 'm.pkl')
-        else:
-            print("exists")
+        joblib.dump(rfc, 'm.pkl')
+        # else:
+        #    print("exists")
 
     def get_age(self, texts):
         model1 = joblib.load('m.pkl')

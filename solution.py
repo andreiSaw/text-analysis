@@ -4,45 +4,36 @@ import pandas as pd
 import numpy as np
 from matplotlib.mlab import find
 from sklearn.externals import joblib
+import scipy.sparse as sp
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier as RFC
-
-
-# import os
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
 
 
 class Solution:  # Class must have name "Solution"
     def __init__(self):
-        """Constructor
-        :return: None
-        """
+        self.tfidf = None
+        self.vectorizer = None
 
     def train(self, training_corpus):
-        """Trainer of classifiers.
-        This function runs before get_age and get_education. Then mentioned functions can use trained model.
-        Save trained model and load it here if you want to save time for training.
-        Training corpus is a list of json-objects with the following fields:
-            id: internal author's id in the dataset [mandatory]
-            texsts: list of author's texts (list of strings) [mandatory]
-            age: author's age (string representing age interval) [optional]
-            education: author's education level (string representing age interval) [optional]
-        :param training_corpus: trainings corpus
-        :return: None
-        """
-        # if not (os.path.exists("m.pkl")):
+
         train_df = pd.DataFrame.from_dict(training_corpus)
-        np.random.seed(0)
-        df_t = train_df
-        df_t = df_t.sample(frac=1.0).reset_index(drop=True)
+        Z = train_df[6000:8000]
+
+        Z.loc[:, 'q'] = pd.Series(np.random.randn(len(Z)), index=Z.index)
+        for index, row in Z.iterrows():
+            Z.at[index, 'q'] = len(Z.at[index, 'texts'])
+            Z.at[index, 'text'] = ''.join(Z.at[index, 'texts'])
+
+        for index, row in Z.iterrows():
+            Z.at[index, 'text'] = Z['text'][index].lower().replace('.', ' ').replace(',', ' ').replace(';',
+                                                                                                       ' ').replace(':',
+                                                                                                                    ' ').replace(
+                '!', ' ').replace('?', ' ').replace('\r', ' ').replace('\n', ' ')
+
         cleanup_nums = {"age": {"<=17": 1, "18-24": 2, "25-34": 3, "35-44": 4, ">=45": 5},
                         "education": {"low": 1, "middle": 2, "high": 3}}
-        df_t.replace(cleanup_nums, inplace=True)
-        df_t.education = df_t.education.fillna(0)
-        df_t.loc[:, 'f'] = pd.Series(np.random.randn(len(df_t)), index=df_t.index)
-        for index, row in df_t.iterrows():
-            df_t.at[index, 'f'] = len(df_t.at[index, 'texts'])
-            df_t.at[index, 'text'] = ''.join(df_t.at[index, 'texts'])
-        Z = df_t.drop(["id", "education"], axis=1)
+        Z.replace(cleanup_nums, inplace=True)
 
         Z.rename(columns={'age': 'y'}, inplace=True)
 
@@ -54,44 +45,51 @@ class Solution:  # Class must have name "Solution"
 
         del train_sels, test_sels
 
-        corpus = Z.text
-        vectorizer = TfidfVectorizer(min_df=1)
-        X = vectorizer.fit_transform(corpus)
+        y_train = Z.y.values[train_inds]
 
-        Y = Z.y.values
+        def extract_features_cv(train_texts, test_texts, ngrams_count, stp_wrds=None, mindf=2, maxdf=0.9):
+            self.tfidf = CountVectorizer(ngram_range=(1, ngrams_count), stop_words=stp_wrds, min_df=mindf, max_df=maxdf)
+            train_features = self.tfidf.fit_transform(train_texts)
+            test_features = self.tfidf.transform(test_texts)
+            return train_features, test_features
 
-        # Initialize the Random Forest or bagged tree based the model chosen
-        rfc = RFC(n_estimators=100, oob_score=True, max_features="auto")
-        print("Training %s" % ("Random Forest"))
-        rfc = rfc.fit(X[train_inds], Y[train_inds])
-        print("OOB Score =", rfc.oob_score_)
+        tit_train_features_cv, tit_test_features_cv = extract_features_cv(Z["text"].values[train_inds],
+                                                                          Z["text"].values[test_inds], 2, 'english', 5,
+                                                                          0.9)
+        self.vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
+        text_train_f = self.vectorizer.fit_transform(Z["text"].values[train_inds])
 
-        joblib.dump(rfc, 'm.pkl')
-        # else:
-        #    print("exists")
+        train_f = sp.hstack((text_train_f, tit_train_features_cv), format='csr')
+
+        print("training LR\n")
+
+        clf = LogisticRegression(C=1.0)
+        clf.fit(train_f, y_train)
+
+        print("dumped LR\n")
+
+        joblib.dump(clf, 'm.pkl')
 
     def get_age(self, texts):
         model1 = joblib.load('m.pkl')
-        df = pd.DataFrame({"f": len(texts), "text": "".join(texts), }, index=[0])
 
-        corpus = df.text
-        vectorizer = TfidfVectorizer(min_df=1)
-        X = vectorizer.fit_transform(corpus)
+        df = pd.DataFrame({"q": len(texts), "text": "".join(texts), }, index=[0])
 
-        df_t = model1.predict(X)
+        tit_test_features_cv = self.tfidf.transform(df['text'].values)
+        text_test_f = self.vectorizer.transform(df["text"].values)
+        test_f = sp.hstack((text_test_f, tit_test_features_cv), format='csr')
 
-        cleanup_nums = {"age": {1: "<=17", 2: "18-24", 3: "25-34", 4: "35-44", 5: ">=45"}}
-        df_t.replace(cleanup_nums, inplace=True)
+        df_t = model1.predict(test_f)
+        df__3 = pd.DataFrame({"age": df_t }, index=[0])
+
+        cleanup_nums = {"age": {1.0: "<=17", 2.0: "18-24", 3.0: "25-34", 4.0: "35-44", 5.0: ">=45"}}
+        df__3.replace(cleanup_nums, inplace=True)
         """Returns age for author of the input texts
              :param texts: list of texts for processing
              :return: age interval
              """
-        return df_t[0]
-        # return "25-34"
+
+        return df__3.at[0, "age"]
 
     def get_education(self, texts):
-        """Returns education of author of the input texts
-        :param texts: list of texts for processing
-        :return: education
-        """
         return "high"

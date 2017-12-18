@@ -69,4 +69,6 @@ target/
 tpc-dataset.train.txt
 
 .DS_Store
-run.py
+*.zip
+
+backup/

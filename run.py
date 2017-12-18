@@ -9,5 +9,7 @@ if __name__ == '__main__':
     with open("tpc-dataset.train.txt", 'r') as f:
         for line in f:
             json_lines.append(json.loads(line))
-    # s.train(json_lines)
-    print(s.get_age(["hi", "ejwj"]))
+    print("opened1\n")
+    s.train(json_lines)
+    print("trained2\n")
+    print(s.get_education(["hi", "ejwj"]))

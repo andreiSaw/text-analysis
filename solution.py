@@ -1,8 +1,5 @@
-# Template solution for Text Processing Course 2017
-# @author Denis Turdakov (turdakov@ispras.ru)
 import pandas as pd
 import numpy as np
-from matplotlib.mlab import find
 from sklearn.externals import joblib
 import scipy.sparse as sp
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,7 +15,7 @@ class Solution:  # Class must have name "Solution"
     def train(self, training_corpus):
 
         train_df = pd.DataFrame.from_dict(training_corpus)
-        Z = train_df[6000:8000]
+        Z = train_df
 
         Z.loc[:, 'q'] = pd.Series(np.random.randn(len(Z)), index=Z.index)
         for index, row in Z.iterrows():
@@ -26,9 +23,10 @@ class Solution:  # Class must have name "Solution"
             Z.at[index, 'text'] = ''.join(Z.at[index, 'texts'])
 
         for index, row in Z.iterrows():
-            Z.at[index, 'text'] = Z['text'][index].lower().replace('.', ' ').replace(',', ' ').replace(';',
-                                                                                                       ' ').replace(':',
-                                                                                                                    ' ').replace(
+            Z.at[index, 'text'] = Z.at[index, 'text'].lower().replace('.', ' ').replace(',', ' ').replace(';',
+                                                                                                          ' ').replace(
+                ':',
+                ' ').replace(
                 '!', ' ').replace('?', ' ').replace('\r', ' ').replace('\n', ' ')
 
         cleanup_nums = {"age": {"<=17": 1, "18-24": 2, "25-34": 3, "35-44": 4, ">=45": 5},
@@ -40,8 +38,8 @@ class Solution:  # Class must have name "Solution"
         train_sels = ~np.isnan(Z.y)
         test_sels = np.isnan(Z.y)
 
-        train_inds = find(train_sels)
-        test_inds = find(test_sels)
+        train_inds = [i for i, x in enumerate(train_sels) if x]
+        test_inds = [i for i, x in enumerate(test_sels) if x]
 
         del train_sels, test_sels
 
@@ -80,7 +78,7 @@ class Solution:  # Class must have name "Solution"
         test_f = sp.hstack((text_test_f, tit_test_features_cv), format='csr')
 
         df_t = model1.predict(test_f)
-        df__3 = pd.DataFrame({"age": df_t }, index=[0])
+        df__3 = pd.DataFrame({"age": df_t}, index=[0])
 
         cleanup_nums = {"age": {1.0: "<=17", 2.0: "18-24", 3.0: "25-34", 4.0: "35-44", 5.0: ">=45"}}
         df__3.replace(cleanup_nums, inplace=True)

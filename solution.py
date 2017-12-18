@@ -1,3 +1,5 @@
+# andrey isaev NRU HSE isaevnextdoor@gmail.com
+
 import pandas as pd
 import numpy as np
 from sklearn.externals import joblib
@@ -13,27 +15,26 @@ class Solution:  # Class must have name "Solution"
         self.vectorizer = None
 
     def train(self, training_corpus):
-
         train_df = pd.DataFrame.from_dict(training_corpus)
         Z = train_df
 
         Z.loc[:, 'q'] = pd.Series(np.random.randn(len(Z)), index=Z.index)
         for index, row in Z.iterrows():
-            Z.at[index, 'q'] = len(Z.at[index, 'texts'])
-            Z.at[index, 'text'] = ''.join(Z.at[index, 'texts'])
-
-        for index, row in Z.iterrows():
-            Z.at[index, 'text'] = Z.at[index, 'text'].lower().replace('.', ' ').replace(',', ' ').replace(';',
-                                                                                                          ' ').replace(
-                ':',
-                ' ').replace(
-                '!', ' ').replace('?', ' ').replace('\r', ' ').replace('\n', ' ')
+            Z.at[index, 'text'] = ''.join(Z.at[index, 'texts']).lower() \
+                .replace('.', ' ') \
+                .replace(',', ' ') \
+                .replace(';', ' ') \
+                .replace(':', ' ') \
+                .replace('!', ' ') \
+                .replace('?', ' ') \
+                .replace('\r', ' ') \
+                .replace('\n', ' ')
 
         cleanup_nums = {"age": {"<=17": 1, "18-24": 2, "25-34": 3, "35-44": 4, ">=45": 5},
-                        "education": {"low": 1, "middle": 2, "high": 3}}
+                        "education": {"lower": 1, "middle": 2, "high": 3}}
         Z.replace(cleanup_nums, inplace=True)
 
-        Z.rename(columns={'age': 'y'}, inplace=True)
+        Z.rename(columns={'education': 'y'}, inplace=True)
 
         train_sels = ~np.isnan(Z.y)
         test_sels = np.isnan(Z.y)
@@ -69,25 +70,33 @@ class Solution:  # Class must have name "Solution"
         joblib.dump(clf, 'm.pkl')
 
     def get_age(self, texts):
+        """Returns age for author of the input texts
+             :param texts: list of texts for processing
+             :return: age interval
+             """
+        return "25-34"
+
+    def get_education(self, texts):
         model1 = joblib.load('m.pkl')
 
-        df = pd.DataFrame({"q": len(texts), "text": "".join(texts), }, index=[0])
+        df = pd.DataFrame({"text": "".join(texts).lower()
+                          .replace('.', ' ') \
+                          .replace(',', ' ') \
+                          .replace(';', ' ') \
+                          .replace(':', ' ') \
+                          .replace('!', ' ') \
+                          .replace('?', ' ') \
+                          .replace('\r', ' ') \
+                          .replace('\n', ' '), }, index=[0])
 
         tit_test_features_cv = self.tfidf.transform(df['text'].values)
         text_test_f = self.vectorizer.transform(df["text"].values)
         test_f = sp.hstack((text_test_f, tit_test_features_cv), format='csr')
 
         df_t = model1.predict(test_f)
-        df__3 = pd.DataFrame({"age": df_t}, index=[0])
+        df__3 = pd.DataFrame({"education": df_t}, index=[0])
 
-        cleanup_nums = {"age": {1.0: "<=17", 2.0: "18-24", 3.0: "25-34", 4.0: "35-44", 5.0: ">=45"}}
+        cleanup_nums = {"education": {1.0: "lower", 2.0: "middle", 3.0: "high"}}
         df__3.replace(cleanup_nums, inplace=True)
-        """Returns age for author of the input texts
-             :param texts: list of texts for processing
-             :return: age interval
-             """
 
-        return df__3.at[0, "age"]
-
-    def get_education(self, texts):
-        return "high"
+        return df__3.at[0, "education"]

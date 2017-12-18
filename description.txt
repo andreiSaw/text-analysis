@@ -1,1 +1,2 @@
-describe what?
+# andrey isaev NRU HSE isaevnextdoor@gmail.com
+LogisticRegression with Tfidf
